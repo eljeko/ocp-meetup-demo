@@ -47,7 +47,7 @@ eg:
 ```java -jar jenkins.war --httpListenAddress=192.100.20.100```
 
 
-## OCP: Create a servie account
+## OCP: Create a service account
 
 Create a new service account called jenkins
 
