@@ -93,7 +93,7 @@ pipeline {
                 stage('UpdateBuild') {
                     steps {
                         script {
-                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                            openshift.withCluster() {
                                 def buildconfigUpdateResult =
                                     sh(
                                         script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' --token=${OCP_SERVICE_TOKEN} -o json $target_cluster_flags \
@@ -113,7 +113,7 @@ pipeline {
                 stage('StartBuild') {
                     steps {
                         script {
-                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                            openshift.withCluster() {
                                 def startBuildResult =
                                     sh(
                                         script: "oc start-build ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} --from-dir=${WORKSPACE}/s2i-binary $target_cluster_flags --follow",
@@ -131,7 +131,7 @@ pipeline {
                 stage('Deploy') {
                     steps {
                         script {
-                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                            openshift.withCluster() {
                                 def patchIamgeStream =
                                     sh(
                                         script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
@@ -160,7 +160,7 @@ pipeline {
                 stage('Rollout') {
                     steps {
                         script {
-                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                            openshift.withCluster() {
                                 def rollout =
                                     sh(
                                         script: "oc rollout latest ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
