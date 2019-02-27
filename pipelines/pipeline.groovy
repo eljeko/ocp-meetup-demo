@@ -91,7 +91,7 @@ pipeline {
                 stage('UpdateBuild') {
                     steps {
                         script {
-                            openshift.withCluster() {
+                            openshift.withCluster('${OCP_CLUSTER}') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     def buildconfigUpdateResult =
                                         sh(
@@ -113,7 +113,7 @@ pipeline {
                 stage('StartBuild') {
                     steps {
                         script {
-                            openshift.withCluster() {
+                            openshift.withCluster('${OCP_CLUSTER}') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     openshift.selector("bc", "${OCP_BUILD_NAME}").startBuild("--from-dir=${WORKSPACE}/s2i-binary", "--wait")
                                     /*
@@ -136,7 +136,7 @@ pipeline {
                 stage('Deploy') {
                     steps {
                         script {
-                            openshift.withCluster() {
+                            openshift.withCluster('${OCP_CLUSTER}') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     def patchIamgeStream =
                                         sh(
@@ -167,7 +167,7 @@ pipeline {
                 stage('Rollout') {
                     steps {
                         script {
-                            openshift.withCluster() {
+                            openshift.withCluster('${OCP_CLUSTER}') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     def rollout =
                                         sh(
