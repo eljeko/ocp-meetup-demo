@@ -11,7 +11,6 @@ pipeline {
                         error('Tag to build is empty')
                     }
                     echo "Releasing tag ${BUILD_TAG}"
-                    target_cluster_flags = "--namespace=${OCP_PRJ_NAMESPACE}"
                 }
             }
         }
@@ -97,7 +96,7 @@ pipeline {
                                     def buildconfigUpdateResult =
                                         sh(
                                             script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' -o json \
-                                                    |oc replace ${OCP_BUILD_NAME}  $target_cluster_flags -f -",
+                                                    |oc replace ${OCP_BUILD_NAME}  -f -",
                                             returnStdout: true
                                         )
                                     if (!buildconfigUpdateResult?.trim()) {
@@ -115,16 +114,18 @@ pipeline {
                     steps {
                         script {
                             openshift.withCluster() {
-                                def startBuildResult =
-                                    sh(
-                                        script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary $target_cluster_flags --follow",
-                                        returnStdout: true
-                                    )
-                                if (!startBuildResult?.trim()) {
-                                    currentBuild.result = 'ERROR'
-                                    error('Start build update finished with errors')
+                                openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                    def startBuildResult =
+                                        sh(
+                                            script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary --follow",
+                                            returnStdout: true
+                                        )
+                                    if (!startBuildResult?.trim()) {
+                                        currentBuild.result = 'ERROR'
+                                        error('Start build update finished with errors')
+                                    }
+                                    echo "Start build result: $startBuildResult"
                                 }
-                                echo "Start build result: $startBuildResult"
                             }
                         }
                     }
@@ -133,27 +134,29 @@ pipeline {
                     steps {
                         script {
                             openshift.withCluster() {
-                                def patchIamgeStream =
-                                    sh(
-                                        script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG}  $target_cluster_flags",
-                                        returnStdout: true
-                                    )
-                                //If the output is true the image was the same, so we check if current image is really the desired version
-                                if (!patchIamgeStream?.trim()) {
-                                    def currentImageStreamVersion =
+                                openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                    def patchIamgeStream =
                                         sh(
-                                            script: "oc get dc ${OCP_BUILD_NAME} -o jsonpath='{.spec.template.spec.containers[0].image}' $target_cluster_flags",
+                                            script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG}",
                                             returnStdout: true
                                         )
-                                    //if current DeploymentConfig image tag version it's different form BUIL_TAG we end the pipeline with an error
-                                    if (!currentImageStreamVersion.equalsIgnoreCase("$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG}")) {
-                                        echo "DeploymentConfig image tag version is: $currentImageStreamVersion but expected tag is ${BUILD_TAG}"
-                                        currentBuild.result = 'ERROR'
-                                        error('Rollout finished with errors: DeploymentConfig image tag version is wrong')
-                                    }
+                                    //If the output is true the image was the same, so we check if current image is really the desired version
+                                    if (!patchIamgeStream?.trim()) {
+                                        def currentImageStreamVersion =
+                                            sh(
+                                                script: "oc get dc ${OCP_BUILD_NAME} -o jsonpath='{.spec.template.spec.containers[0].image}'",
+                                                returnStdout: true
+                                            )
+                                        //if current DeploymentConfig image tag version it's different form BUIL_TAG we end the pipeline with an error
+                                        if (!currentImageStreamVersion.equalsIgnoreCase("$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG}")) {
+                                            echo "DeploymentConfig image tag version is: $currentImageStreamVersion but expected tag is ${BUILD_TAG}"
+                                            currentBuild.result = 'ERROR'
+                                            error('Rollout finished with errors: DeploymentConfig image tag version is wrong')
+                                        }
 
+                                    }
+                                    echo "Patch imageStream result: $patchIamgeStream"
                                 }
-                                echo "Patch imageStream result: $patchIamgeStream"
                             }
                         }
                     }
@@ -162,16 +165,18 @@ pipeline {
                     steps {
                         script {
                             openshift.withCluster() {
-                                def rollout =
-                                    sh(
-                                        script: "oc rollout latest ${OCP_BUILD_NAME} $target_cluster_flags",
-                                        returnStdout: true
-                                    )
-                                if (!rollout?.trim()) {
-                                    currentBuild.result = 'ERROR'
-                                    error('Rollout finished with errors')
+                                openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                    def rollout =
+                                        sh(
+                                            script: "oc rollout latest ${OCP_BUILD_NAME}",
+                                            returnStdout: true
+                                        )
+                                    if (!rollout?.trim()) {
+                                        currentBuild.result = 'ERROR'
+                                        error('Rollout finished with errors')
+                                    }
+                                    echo "Rollout result: $rollout"
                                 }
-                                echo "Rollout result: $rollout"
                             }
                         }
                     }
