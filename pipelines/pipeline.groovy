@@ -115,6 +115,8 @@ pipeline {
                         script {
                             openshift.withCluster() {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                    openshift.selector("bc", "${OCP_BUILD_NAME}").startBuild("--from-dir=${WORKSPACE}/s2i-binary", "--wait")
+                                    /*
                                     def startBuildResult =
                                         sh(
                                             script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary --follow",
@@ -125,6 +127,7 @@ pipeline {
                                         error('Start build update finished with errors')
                                     }
                                     echo "Start build result: $startBuildResult"
+                                    */
                                 }
                             }
                         }
