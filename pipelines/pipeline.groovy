@@ -93,7 +93,7 @@ pipeline {
                         script {
                             openshift.withCluster('${OCP_CLUSTER}') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}','ocp-meetup-token') {
-                                    def bc = openshift.selector('bc/${OCP_BUILD_NAME}').object()
+                                    def bc = openshift.selector('bc', '${OCP_BUILD_NAME}')
                                     bc.spec.output.to.kind.ImageStream.name = "${OCP_BUILD_NAME}:${BUILD_TAG}"
                                     openshift.apply(bc)
                                     /*
