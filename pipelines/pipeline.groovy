@@ -92,7 +92,7 @@ pipeline {
                     steps {
                         script {
                             openshift.withCluster('${OCP_CLUSTER}') {
-                                openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                openshift.withProject('${OCP_PRJ_NAMESPACE}','ocp-meetup-token') {
                                     def buildconfigUpdateResult =
                                         sh(
                                             script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' -o json \
@@ -113,7 +113,7 @@ pipeline {
                 stage('StartBuild') {
                     steps {
                         script {
-                            openshift.withCluster('${OCP_CLUSTER}') {
+                            openshift.withCluster('${OCP_CLUSTER}', 'ocp-meetup-token') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     openshift.verbose()
                                     def bc = openshift.selector('bc/${OCP_BUILD_NAME}').object()
