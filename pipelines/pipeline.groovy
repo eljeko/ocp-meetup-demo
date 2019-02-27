@@ -97,7 +97,7 @@ pipeline {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     def bc = openshift.selector('bc', '${OCP_BUILD_NAME}')
 
-                                    echo bc
+                                    echo bc.object()
 
                                     bc.spec.output.to.kind.ImageStream.name = "${OCP_BUILD_NAME}:${BUILD_TAG}"
                                     openshift.apply(bc)
