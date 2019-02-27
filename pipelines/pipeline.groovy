@@ -96,8 +96,8 @@ pipeline {
                             openshift.withCluster() {
                                 def buildconfigUpdateResult =
                                     sh(
-                                        script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' --token=${OCP_SERVICE_TOKEN} -o json $target_cluster_flags \
-                                                |oc replace ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags -f -",
+                                        script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' -o json $target_cluster_flags \
+                                                |oc replace ${OCP_BUILD_NAME}  $target_cluster_flags -f -",
                                         returnStdout: true
                                     )
                                 if (!buildconfigUpdateResult?.trim()) {
@@ -116,7 +116,7 @@ pipeline {
                             openshift.withCluster() {
                                 def startBuildResult =
                                     sh(
-                                        script: "oc start-build ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} --from-dir=${WORKSPACE}/s2i-binary $target_cluster_flags --follow",
+                                        script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary $target_cluster_flags --follow",
                                         returnStdout: true
                                     )
                                 if (!startBuildResult?.trim()) {
@@ -134,14 +134,14 @@ pipeline {
                             openshift.withCluster() {
                                 def patchIamgeStream =
                                     sh(
-                                        script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
+                                        script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG}  $target_cluster_flags",
                                         returnStdout: true
                                     )
                                 //If the output is true the image was the same, so we check if current image is really the desired version
                                 if (!patchIamgeStream?.trim()) {
                                     def currentImageStreamVersion =
                                         sh(
-                                            script: "oc get dc ${OCP_BUILD_NAME} -o jsonpath='{.spec.template.spec.containers[0].image}' --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
+                                            script: "oc get dc ${OCP_BUILD_NAME} -o jsonpath='{.spec.template.spec.containers[0].image}' $target_cluster_flags",
                                             returnStdout: true
                                         )
                                     //if current DeploymentConfig image tag version it's different form BUIL_TAG we end the pipeline with an error
@@ -163,7 +163,7 @@ pipeline {
                             openshift.withCluster() {
                                 def rollout =
                                     sh(
-                                        script: "oc rollout latest ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
+                                        script: "oc rollout latest ${OCP_BUILD_NAME} $target_cluster_flags",
                                         returnStdout: true
                                     )
                                 if (!rollout?.trim()) {
