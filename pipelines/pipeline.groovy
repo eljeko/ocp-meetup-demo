@@ -116,7 +116,8 @@ pipeline {
                             openshift.withCluster('${OCP_CLUSTER}') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     openshift.verbose()
-                                    def bc = openshift.selector('bc/${OCP_BUILD_NAME}')
+                                    def bc = openshift.selector('bc/${OCP_BUILD_NAME}').object()
+                                    echo bc
                                     bc.startBuild("--from-dir=${WORKSPACE}/s2i-binary", "--wait")
                                     openshift.verbose(false)
                                     /*
