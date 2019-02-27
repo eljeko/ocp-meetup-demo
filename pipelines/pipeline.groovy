@@ -112,21 +112,26 @@ pipeline {
                 }
                 stage('StartBuild') {
                     steps {
-                        openshift.withCluster('${OCP_CLUSTER}') {
-                            openshift.withProject('${OCP_PRJ_NAMESPACE}') {
-                                openshift.selector("bc", "${OCP_BUILD_NAME}").startBuild("--from-dir=${WORKSPACE}/s2i-binary", "--wait")
-                                /*
-                                def startBuildResult =
-                                    sh(
-                                        script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary --follow",
-                                        returnStdout: true
-                                    )
-                                if (!startBuildResult?.trim()) {
-                                    currentBuild.result = 'ERROR'
-                                    error('Start build update finished with errors')
+                        script {
+                            openshift.withCluster('${OCP_CLUSTER}') {
+                                openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                    openshift.verbose()
+                                    def bc = openshift.selector('bc/${OCP_BUILD_NAME}')
+                                    bc.startBuild("--from-dir=${WORKSPACE}/s2i-binary", "--wait")
+                                    openshift.verbose(false)
+                                    /*
+                                    def startBuildResult =
+                                        sh(
+                                            script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary --follow",
+                                            returnStdout: true
+                                        )
+                                    if (!startBuildResult?.trim()) {
+                                        currentBuild.result = 'ERROR'
+                                        error('Start build update finished with errors')
+                                    }
+                                    echo "Start build result: $startBuildResult"
+                                    */
                                 }
-                                echo "Start build result: $startBuildResult"
-                                */
                             }
                         }
                     }
