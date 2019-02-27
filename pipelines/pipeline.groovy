@@ -93,6 +93,10 @@ pipeline {
                         script {
                             openshift.withCluster('${OCP_CLUSTER}') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}','ocp-meetup-token') {
+                                    def bc = openshift.selector('bc/${OCP_BUILD_NAME}').object()
+                                    bc.spec.output.to.kind.ImageStream.name = "${OCP_BUILD_NAME}:${BUILD_TAG}"
+                                    openshift.apply(bc)
+                                    /*
                                     def buildconfigUpdateResult =
                                         sh(
                                             script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' -o json \
@@ -104,6 +108,7 @@ pipeline {
                                         error('BuildConfig update finished with errors')
                                     }
                                     echo "Patch BuildConfig result: $buildconfigUpdateResult"
+                                    */
                                 }
                             }
                         }
