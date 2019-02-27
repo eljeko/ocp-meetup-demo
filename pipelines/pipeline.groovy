@@ -93,7 +93,7 @@ pipeline {
                 stage('UpdateBuild') {
                     steps {
                         script {
-                            openshift.withCluster('${OCP_CLUSTER}') {
+                            openshift.withCluster('${OCP_CLUSTER}', 'ocp-meetup-token') {
                                 openshift.withProject('${OCP_PRJ_NAMESPACE}') {
                                     def bc = openshift.selector('bc', '${OCP_BUILD_NAME}')
 
