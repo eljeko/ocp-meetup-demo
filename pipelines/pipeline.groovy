@@ -25,6 +25,7 @@ pipeline {
                 )
             }
         }
+/*
         stage('Maven') {
             steps {
                 withMaven(mavenSettingsFilePath: "${MVN_SETTINGS}") {
@@ -58,7 +59,8 @@ pipeline {
                 }
             }
         }
-        stage('Publish on nexus') {
+*/
+        stage('Build on nexus') {
             steps {
                 script{
                     if(Boolean.parseBoolean(env.DEPLOY_ON_NEXUS)){
