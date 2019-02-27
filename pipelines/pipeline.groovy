@@ -11,8 +11,7 @@ pipeline {
                         error('Tag to build is empty')
                     }
                     echo "Releasing tag ${BUILD_TAG}"
-                    target_cluster_flags = "--server=${OCP_CLUSTER_URL} --insecure-skip-tls-verify"
-                    target_cluster_flags = "$target_cluster_flags   --namespace=${OCP_PRJ_NAMESPACE}"
+                    target_cluster_flags = "--namespace=${OCP_PRJ_NAMESPACE}"
                 }
             }
         }
@@ -94,17 +93,19 @@ pipeline {
                     steps {
                         script {
                             openshift.withCluster() {
-                                def buildconfigUpdateResult =
-                                    sh(
-                                        script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' -o json $target_cluster_flags \
-                                                |oc replace ${OCP_BUILD_NAME}  $target_cluster_flags -f -",
-                                        returnStdout: true
-                                    )
-                                if (!buildconfigUpdateResult?.trim()) {
-                                    currentBuild.result = 'ERROR'
-                                    error('BuildConfig update finished with errors')
+                                openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                    def buildconfigUpdateResult =
+                                        sh(
+                                            script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' -o json \
+                                                    |oc replace ${OCP_BUILD_NAME}  $target_cluster_flags -f -",
+                                            returnStdout: true
+                                        )
+                                    if (!buildconfigUpdateResult?.trim()) {
+                                        currentBuild.result = 'ERROR'
+                                        error('BuildConfig update finished with errors')
+                                    }
+                                    echo "Patch BuildConfig result: $buildconfigUpdateResult"
                                 }
-                                echo "Patch BuildConfig result: $buildconfigUpdateResult"
                             }
                         }
 
