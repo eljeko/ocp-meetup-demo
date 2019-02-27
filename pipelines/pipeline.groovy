@@ -1,5 +1,4 @@
-def target_cluster_flags = ""
-def docker-registry=docker-registry.default.svc
+def docker_registry = "docker-registry.default.svc"
 pipeline {
     agent any
     stages{
