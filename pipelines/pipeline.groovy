@@ -1,104 +1,182 @@
 def target_cluster_flags = ""
-def docker_registry = "docker-registry.default.svc"
-def rolloutNewVersion
-def approve_message
-//PREREQUISITES
-//oc new-build --strategy docker --binary  --name docker-release
-//oc start-build docker-release --from-dir . --follow
-
+def docker-registry=docker-registry.default.svc
 pipeline {
     agent any
     stages{
-        stage('Prepare') {
+        stage('prepare') {
             steps {
-                sh 'echo "Moving to target project:${OCP_PRJ_BASE_NAMESPACE}-collaudo"'
-                sh 'oc project ${OCP_PRJ_BASE_NAMESPACE}-collaudo'
+                sh 'printenv |sort'
                 script {
                     if (!"${BUILD_TAG}"?.trim()) {
                         currentBuild.result = 'ABORTED'
                         error('Tag to build is empty')
                     }
                     echo "Releasing tag ${BUILD_TAG}"
-                    target_cluster_flags = "--insecure-skip-tls-verify"
-                    target_cluster_flags = "$target_cluster_flags --namespace=${OCP_PRJ_BASE_NAMESPACE}-collaudo"
+                    target_cluster_flags = "--server=${OCP_CLUSTER_URL} --insecure-skip-tls-verify"
+                    target_cluster_flags = "$target_cluster_flags   --namespace=${OCP_PRJ_NAMESPACE}"
                 }
             }
         }
-        stage('Tag Image') {
-            steps{
-                script{
-                    def checkImageStream =
-                        sh(
-                            script:"oc get is ${OCP_BUILD_NAME} -o yaml --ignore-not-found=true $target_cluster_flags|grep ${BUILD_TAG}",
-                            returnStatus:true
-                        )
-                    if (checkImageStream >= 1) {
-                        sh 'oc tag ${OCP_PRJ_BASE_NAMESPACE}-test/${OCP_BUILD_NAME}:latest ${OCP_PRJ_BASE_NAMESPACE}-collaudo/${OCP_BUILD_NAME}:${BUILD_TAG}'
-                    }else{
-                        echo "Image with version ${BUILD_TAG} already present, will be restored"
+        stage('Source checkout') {
+            steps {
+                checkout(
+                    [$class                           : 'GitSCM', branches: [[name: "refs/tags/${BUILD_TAG}"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions                       : [],
+                        submoduleCfg                     : [],
+                        userRemoteConfigs                : [[credentialsId: "${GIT_CREDENTIAL_ID}", url: "${GIT_URL}"]]]
+                )
+            }
+        }
+        stage('Maven') {
+            steps {
+                withMaven(mavenSettingsFilePath: "${MVN_SETTINGS}") {
+                    sh "mvn -f ${POM_FILE} versions:set -DnewVersion=${BUILD_TAG}"
+                }
+            }
+        }
+        stage('QA') {
+            parallel {
+                stage('SonarQube analysis') {
+                    steps {
+                        script{
+                            if(Boolean.parseBoolean(env.SONAR)){
+                                withSonarQubeEnv('Sonar-MacLocalhost') {
+                                    withMaven(mavenSettingsFilePath: "${MVN_SETTINGS}") {
+                                        sh "mvn -f ${POM_FILE} sonar:sonar"
+                                    }
+                                }
+                            }else{
+                                echo "SonarQube analysis skipped"
+                            }
+                        }
+                    }
+                }
+                stage('Run Maven Tests') {
+                    steps {
+                        withMaven(mavenSettingsFilePath: "${MVN_SETTINGS}") {
+                            sh "mvn -f ${POM_FILE} test"
+                        }
                     }
                 }
             }
         }
-        stage("Confirm Rollout") {
+        stage('Publish on nexus') {
             steps {
-                script {
-                    rolloutNewVersion =
-                        input(  message: "Si desidere effettuare il rollout?",
-                                ok: 'Procedi',
-                                    parameters: [booleanParam(defaultValue: true,
-                                            description: '',
-                                            name: 'Procedi?')])
-                    echo "Rollout:" + rolloutNewVersion
+                script{
+                    if(Boolean.parseBoolean(env.DEPLOY_ON_NEXUS)){
+                        echo "DEPLOY ON NEXUS"
+                        withMaven(mavenSettingsFilePath: "${MVN_SETTINGS}") {
+                            sh "mvn -f ${POM_FILE} clean deploy -Dmaven.javadoc.skip=true -DskipTests "
+                        }
+                    }else{
+                        echo "PACKAGE"
+                        withMaven(mavenSettingsFilePath: "${MVN_SETTINGS}") {
+                            sh "mvn -f ${POM_FILE} clean package -Dappversion=${BUILD_TAG} -Dmaven.javadoc.skip=true -DskipTests "
+                        }
+                    }
                 }
             }
         }
-        stage('Rollout') {
-            when {
-                expression { rolloutNewVersion ==~ /(?i)(Y|YES|T|TRUE|ON|RUN)/ }
-            }
-            steps {
-                script {
-                    def patchImageStream =
-                        sh(
-                            script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_BASE_NAMESPACE}-collaudo/${OCP_BUILD_NAME}:${BUILD_TAG}  $target_cluster_flags",
-                            returnStdout: true
-                        )
-                    if (!patchImageStream?.trim()) {
-                        def currentImageStreamVersion =
-                            sh(
-                                script: "oc get dc ${OCP_BUILD_NAME} -o jsonpath='{.spec.template.spec.containers[0].image}'  $target_cluster_flags",
-                                returnStdout: true
-                            )
-                        if (!currentImageStreamVersion.equalsIgnoreCase("$docker_registry:5000/${OCP_PRJ_BASE_NAMESPACE}-collaudo/${OCP_BUILD_NAME}:${BUILD_TAG}")) {
-                            echo "DeploymentConfig image tag version is: $currentImageStreamVersion but expected tag is ${BUILD_TAG}"
-                            currentBuild.result = 'ERROR'
-                            error('Rollout finished with errors: DeploymentConfig image tag version is wrong')
+        stage('OCP'){
+            stages {
+                stage('Prepare') {
+                    steps {
+                        sh """
+                            rm -rf ${WORKSPACE}/s2i-binary
+                            mkdir -p ${WORKSPACE}/s2i-binary
+                            cp ${WORKSPACE}/web-app/target/ROOT.war ${WORKSPACE}/s2i-binary
+                        """
+//                            mkdir -p ${WORKSPACE}/s2i-binary/configuration
+//                            cp ${WORKSPACE}/runtime-configuration/ocp/standalone-openshift.xml ${WORKSPACE}/s2i-binary/configuration/
+                    }
+                }
+                stage('UpdateBuild') {
+                    steps {
+                        script {
+                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                                def buildconfigUpdateResult =
+                                    sh(
+                                        script: "oc patch bc ${OCP_BUILD_NAME}  -p '{\"spec\":{\"output\":{\"to\":{\"kind\":\"ImageStreamTag\",\"name\":\"${OCP_BUILD_NAME}:${BUILD_TAG}\"}}}}' --token=${OCP_SERVICE_TOKEN} -o json $target_cluster_flags \
+                                                |oc replace ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags -f -",
+                                        returnStdout: true
+                                    )
+                                if (!buildconfigUpdateResult?.trim()) {
+                                    currentBuild.result = 'ERROR'
+                                    error('BuildConfig update finished with errors')
+                                }
+                                echo "Patch BuildConfig result: $buildconfigUpdateResult"
+                            }
                         }
 
                     }
-                    def rollout =
-                        sh(
-                            script: "oc rollout latest ${OCP_BUILD_NAME} $target_cluster_flags",
-                            returnStdout: true
-                        )
-                    if (!rollout?.trim()) {
-                        currentBuild.result = 'ERROR'
-                        error('Rollout finished with errors')
-                    }else{
-                        sh(
-                            script: "oc label dc ${OCP_BUILD_NAME} $target_cluster_flags img_version=${BUILD_TAG} --overwrite=true",
-                            returnStdout: true
-                        )
+                }
+                stage('StartBuild') {
+                    steps {
+                        script {
+                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                                def startBuildResult =
+                                    sh(
+                                        script: "oc start-build ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} --from-dir=${WORKSPACE}/s2i-binary $target_cluster_flags --follow",
+                                        returnStdout: true
+                                    )
+                                if (!startBuildResult?.trim()) {
+                                    currentBuild.result = 'ERROR'
+                                    error('Start build update finished with errors')
+                                }
+                                echo "Start build result: $startBuildResult"
+                            }
+                        }
                     }
-                    echo "Rollout result: $rollout"
+                }
+                stage('Deploy') {
+                    steps {
+                        script {
+                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                                def patchIamgeStream =
+                                    sh(
+                                        script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
+                                        returnStdout: true
+                                    )
+                                //If the output is true the image was the same, so we check if current image is really the desired version
+                                if (!patchIamgeStream?.trim()) {
+                                    def currentImageStreamVersion =
+                                        sh(
+                                            script: "oc get dc ${OCP_BUILD_NAME} -o jsonpath='{.spec.template.spec.containers[0].image}' --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
+                                            returnStdout: true
+                                        )
+                                    //if current DeploymentConfig image tag version it's different form BUIL_TAG we end the pipeline with an error
+                                    if (!currentImageStreamVersion.equalsIgnoreCase("$docker_registry:5000/${OCP_PRJ_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG}")) {
+                                        echo "DeploymentConfig image tag version is: $currentImageStreamVersion but expected tag is ${BUILD_TAG}"
+                                        currentBuild.result = 'ERROR'
+                                        error('Rollout finished with errors: DeploymentConfig image tag version is wrong')
+                                    }
+
+                                }
+                                echo "Patch imageStream result: $patchIamgeStream"
+                            }
+                        }
+                    }
+                }
+                stage('Rollout') {
+                    steps {
+                        script {
+                            withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                                def rollout =
+                                    sh(
+                                        script: "oc rollout latest ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags",
+                                        returnStdout: true
+                                    )
+                                if (!rollout?.trim()) {
+                                    currentBuild.result = 'ERROR'
+                                    error('Rollout finished with errors')
+                                }
+                                echo "Rollout result: $rollout"
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
-    post {
-        always {
-            sh 'oc project jenkins'
         }
     }
 }
