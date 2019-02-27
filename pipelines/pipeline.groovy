@@ -112,23 +112,21 @@ pipeline {
                 }
                 stage('StartBuild') {
                     steps {
-                        script {
-                            openshift.withCluster('${OCP_CLUSTER}') {
-                                openshift.withProject('${OCP_PRJ_NAMESPACE}') {
-                                    openshift.selector("bc", "${OCP_BUILD_NAME}").startBuild("--from-dir=${WORKSPACE}/s2i-binary", "--wait")
-                                    /*
-                                    def startBuildResult =
-                                        sh(
-                                            script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary --follow",
-                                            returnStdout: true
-                                        )
-                                    if (!startBuildResult?.trim()) {
-                                        currentBuild.result = 'ERROR'
-                                        error('Start build update finished with errors')
-                                    }
-                                    echo "Start build result: $startBuildResult"
-                                    */
+                        openshift.withCluster('${OCP_CLUSTER}') {
+                            openshift.withProject('${OCP_PRJ_NAMESPACE}') {
+                                openshift.selector("bc", "${OCP_BUILD_NAME}").startBuild("--from-dir=${WORKSPACE}/s2i-binary", "--wait")
+                                /*
+                                def startBuildResult =
+                                    sh(
+                                        script: "oc start-build ${OCP_BUILD_NAME} --from-dir=${WORKSPACE}/s2i-binary --follow",
+                                        returnStdout: true
+                                    )
+                                if (!startBuildResult?.trim()) {
+                                    currentBuild.result = 'ERROR'
+                                    error('Start build update finished with errors')
                                 }
+                                echo "Start build result: $startBuildResult"
+                                */
                             }
                         }
                     }
