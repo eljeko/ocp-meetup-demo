@@ -32,7 +32,7 @@ pipeline {
                                 returnStatus:true
                             )
                         if (checkImageStream >= 1) {
-                            sh 'oc tag ${OCP_PRJ_BASE_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} ${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}:${BUILD_TAG} --token=${OCP_SERVICE_TOKEN} '
+                            sh 'oc tag ${OCP_PRJ_BASE_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} ${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}:${BUILD_TAG} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags'
                         }else{
                             echo "Image with version ${BUILD_TAG} already present, will be restored"
                         }

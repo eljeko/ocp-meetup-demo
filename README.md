@@ -61,3 +61,7 @@ The service account will need to have project level access to each of the projec
 
 ## Configure Jenkins
 
+oc policy add-role-to-user edit system:serviceaccount:release-demo-prod:jenkins -n release-demo-prod
+oc policy add-role-to-user system:image-puller system:serviceaccount:release-demo-prod:jenkins -n release-demo
+oc serviceaccounts get-token jenkins -n release-demo-prod
+oc serviceaccounts get-token jenkins -n release-demo
