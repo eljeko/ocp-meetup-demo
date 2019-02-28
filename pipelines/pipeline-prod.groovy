@@ -32,7 +32,11 @@ pipeline {
                                 returnStatus:true
                             )
                         if (checkImageStream >= 1) {
-                            sh 'oc tag ${OCP_PRJ_BASE_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} ${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}:${BUILD_TAG} $target_cluster_flags --token=${OCP_SERVICE_TOKEN} '
+                            def tagImageStrem =
+                                sh(
+                                    script:"oc tag ${OCP_PRJ_BASE_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} ${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}:${BUILD_TAG} $target_cluster_flags --token=${OCP_SERVICE_TOKEN}",
+                                    returnStatus:true
+                                )
                         }else{
                             echo "Image with version ${BUILD_TAG} already present, will be restored"
                         }
