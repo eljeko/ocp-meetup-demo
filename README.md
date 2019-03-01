@@ -86,3 +86,31 @@ oc expose service acme-app-green
 oc expose service acme-app-blue --name='acme-app' -l name='acme-app'
 oc patch route/acme-app  --patch='{"spec":{"to":{"name":"acme-app-green"}}}'
 ```
+
+## Pipeline Stages
+### Pre Production
+* prepare
+* Source checkout
+* Quality Assurance
+  * SonarQube analysis
+  * Maven Tests
+* App Build and Package
+* OCP
+  * Prepare
+  * Update BuildConfig
+  * Start New Build
+  * Deploy
+  * Rollout
+
+### Production
+* Prepare
+* Verify Active Service
+* Tag Image
+* Confirm Rollout
+* Rollout
+* Patch Route
+
+
+
+
+
