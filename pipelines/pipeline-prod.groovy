@@ -31,7 +31,6 @@ pipeline {
                             returnStatus:true
                         )
                     }
-                    echo "Active Service $activeService will be replace"
                     if (activeService == "${OCP_BUILD_NAME}-blue") {
                         newState = 'green'
                         currentState = 'blue'
