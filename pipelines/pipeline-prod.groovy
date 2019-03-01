@@ -33,12 +33,13 @@ pipeline {
                     withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
                         def activeService = {
                             sh(
-                                script: "oc get route ${OCP_BUILD_NAME} -o jsonpath='{.spec.to.name}'  --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
+                                script: "oc get route ${OCP_BUILD_NAME} -o jsonpath='{.spec.to.name}' --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags |grep ${currentState}",
                                 returnStdout: true
                             )
                         }
                         echo "Active Service:" + activeService
-                        if (activeService == "${OCP_BUILD_NAME}-blue") {
+//                        if (activeService == "${OCP_BUILD_NAME}-blue") {
+                        if (activeService >= 1 ) {
                             newState = 'green'
                             currentState = 'blue'
                         }
