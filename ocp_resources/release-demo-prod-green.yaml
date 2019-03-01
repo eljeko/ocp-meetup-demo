@@ -8,18 +8,18 @@ items:
     creationTimestamp: 2019-02-27T17:11:36Z
     generation: 17
     labels:
-      app: acme-app
-    name: acme-app
+      app: acme-app-green
+    name: acme-app-green
     namespace: release-demo-prod
     resourceVersion: "810330"
-    selfLink: /apis/apps.openshift.io/v1/namespaces/release-demo-prod/deploymentconfigs/acme-app
+    selfLink: /apis/apps.openshift.io/v1/namespaces/release-demo-prod/deploymentconfigs/acme-app-green
     uid: bd6bfb64-3ab2-11e9-a1a9-005056a8d7b7
   spec:
     replicas: 1
     revisionHistoryLimit: 10
     selector:
-      app: acme-app
-      deploymentconfig: acme-app
+      app: acme-app-green
+      deploymentconfig: acme-app-green
     strategy:
       activeDeadlineSeconds: 21600
       resources: {}
@@ -36,13 +36,13 @@ items:
           openshift.io/generated-by: OpenShiftNewApp
         creationTimestamp: null
         labels:
-          app: acme-app
-          deploymentconfig: acme-app
+          app: acme-app-green
+          deploymentconfig: acme-app-green
       spec:
         containers:
-        - image: docker-registry.default.svc:5000/release-demo-prod/acme-app:1.0_GA
+        - image: docker-registry.default.svc:5000/release-demo-prod/acme-app-green:1.0_GA
           imagePullPolicy: Always
-          name: acme-app
+          name: acme-app-green
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -74,7 +74,7 @@ items:
       type: Available
     - lastTransitionTime: 2019-02-28T15:26:53Z
       lastUpdateTime: 2019-02-28T15:26:55Z
-      message: replication controller "acme-app-9" successfully rolled out
+      message: replication controller "acme-app-green-9" successfully rolled out
       reason: NewReplicationControllerAvailable
       status: "True"
       type: Progressing
@@ -113,19 +113,19 @@ items:
       openshift.io/host.generated: "true"
     creationTimestamp: 2019-02-27T17:11:43Z
     labels:
-      app: acme-app
-    name: acme-app
+      app: acme-app-green
+    name: acme-app-green
     namespace: release-demo-prod
     resourceVersion: "676130"
-    selfLink: /apis/route.openshift.io/v1/namespaces/release-demo-prod/routes/acme-app
+    selfLink: /apis/route.openshift.io/v1/namespaces/release-demo-prod/routes/acme-app-green
     uid: c16638cc-3ab2-11e9-a1a9-005056a8d7b7
   spec:
-    host: acme-app-release-demo-prod.okd.apps.nodisk.space
+    host: acme-app-green-release-demo-prod.okd.apps.nodisk.space
     port:
       targetPort: 8080-tcp
     to:
       kind: Service
-      name: acme-app
+      name: acme-app-green
       weight: 100
     wildcardPolicy: None
   status:
@@ -134,13 +134,9 @@ items:
       - lastTransitionTime: 2019-02-27T17:11:43Z
         status: "True"
         type: Admitted
-      host: acme-app-release-demo-prod.okd.apps.nodisk.space
+      host: acme-app-green-release-demo-prod.okd.apps.nodisk.space
       routerName: router
       wildcardPolicy: None
-kind: List
-metadata:
-  resourceVersion: ""
-  selfLink: ""
 - apiVersion: v1
   kind: Service
   metadata:
@@ -148,11 +144,11 @@ metadata:
       openshift.io/generated-by: OpenShiftNewApp
     creationTimestamp: 2019-02-27T17:11:36Z
     labels:
-      app: acme-app
-    name: acme-app
+      app: acme-app-green
+    name: acme-app-green
     namespace: release-demo
     resourceVersion: "676081"
-    selfLink: /api/v1/namespaces/release-demo-prod/services/acme-app
+    selfLink: /api/v1/namespaces/release-demo-prod/services/acme-app-green
     uid: bd72c906-3ab2-11e9-a1a9-005056a8d7b7
   spec:
     ports:
@@ -161,8 +157,8 @@ metadata:
       protocol: TCP
       targetPort: 8080
     selector:
-      app: acme-app
-      deploymentconfig: acme-app
+      app: acme-app-green
+      deploymentconfig: acme-app-green
     sessionAffinity: None
     type: ClusterIP
   status:

@@ -75,10 +75,14 @@ oc serviceaccounts get-token jenkins -n release-demo
 
 ## Blue/Green Deployment
 ```
-oc new-app --name='acme-app-blue' -l name='acme-app' -i acme-app:1.0_GA
+oc create is acme-app-green
+oc create is acme-app-blue
+oc tag release-demo/acme-app:1.0_GA release-demo-prod/acme-app-blue:1.0_GA
+oc tag release-demo/acme-app:1.0_GA release-demo-prod/acme-app-green:1.0_GA
+oc new-app --name='acme-app-blue' -l name='acme-app' --image-stream="release-demo-prod/acme-app-blue:1.0_GA"
 oc expose service acme-app-blue
-oc new-app --name='acme-app-green' -l name='acme-app' -i acme-app:1.0_GA
+oc new-app --name='acme-app-green' -l name='acme-app' --image-stream="release-demo-prod/acme-app-green:1.0_GA"
 oc expose service acme-app-green
-oc expose service acme-app-blue --name='bg' -l name='acme-app'
-oc patch route/bg  --patch='{"spec":{"to":{"name":"acme-app-green"}}}'
+oc expose service acme-app-blue --name='acme-app' -l name='acme-app'
+oc patch route/acme-app  --patch='{"spec":{"to":{"name":"acme-app-green"}}}'
 ```

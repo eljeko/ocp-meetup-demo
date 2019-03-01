@@ -8,18 +8,18 @@ items:
     creationTimestamp: 2019-02-27T17:11:36Z
     generation: 17
     labels:
-      app: acme-app
-    name: acme-app
-    namespace: release-demo
+      app: acme-app-blue
+    name: acme-app-blue
+    namespace: release-demo-prod
     resourceVersion: "810330"
-    selfLink: /apis/apps.openshift.io/v1/namespaces/release-demo/deploymentconfigs/acme-app
+    selfLink: /apis/apps.openshift.io/v1/namespaces/release-demo-prod/deploymentconfigs/acme-app-blue
     uid: bd6bfb64-3ab2-11e9-a1a9-005056a8d7b7
   spec:
     replicas: 1
     revisionHistoryLimit: 10
     selector:
-      app: acme-app
-      deploymentconfig: acme-app
+      app: acme-app-blue
+      deploymentconfig: acme-app-blue
     strategy:
       activeDeadlineSeconds: 21600
       resources: {}
@@ -36,13 +36,13 @@ items:
           openshift.io/generated-by: OpenShiftNewApp
         creationTimestamp: null
         labels:
-          app: acme-app
-          deploymentconfig: acme-app
+          app: acme-app-blue
+          deploymentconfig: acme-app-blue
       spec:
         containers:
-        - image: docker-registry.default.svc:5000/release-demo/acme-app:1.0_GA
+        - image: docker-registry.default.svc:5000/release-demo-prod/acme-app-blue:1.0_GA
           imagePullPolicy: Always
-          name: acme-app
+          name: acme-app-blue
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -74,7 +74,7 @@ items:
       type: Available
     - lastTransitionTime: 2019-02-28T15:26:53Z
       lastUpdateTime: 2019-02-28T15:26:55Z
-      message: replication controller "acme-app-9" successfully rolled out
+      message: replication controller "acme-app-blue-9" successfully rolled out
       reason: NewReplicationControllerAvailable
       status: "True"
       type: Progressing
@@ -102,9 +102,9 @@ items:
   metadata:
     creationTimestamp: 2019-02-27T17:34:22Z
     name: cool-app-config
-    namespace: release-demo
+    namespace: release-demo-prod
     resourceVersion: "678494"
-    selfLink: /api/v1/namespaces/release-demo/configmaps/cool-app-config
+    selfLink: /api/v1/namespaces/release-demo-prod/configmaps/cool-app-config
     uid: eb9f655e-3ab5-11e9-a1a9-005056a8d7b7
 - apiVersion: route.openshift.io/v1
   kind: Route
@@ -113,19 +113,19 @@ items:
       openshift.io/host.generated: "true"
     creationTimestamp: 2019-02-27T17:11:43Z
     labels:
-      app: acme-app
-    name: acme-app
-    namespace: release-demo
+      app: acme-app-blue
+    name: acme-app-blue
+    namespace: release-demo-prod
     resourceVersion: "676130"
-    selfLink: /apis/route.openshift.io/v1/namespaces/release-demo/routes/acme-app
+    selfLink: /apis/route.openshift.io/v1/namespaces/release-demo-prod/routes/acme-app-blue
     uid: c16638cc-3ab2-11e9-a1a9-005056a8d7b7
   spec:
-    host: acme-app-release-demo.okd.apps.nodisk.space
+    host: acme-app-blue-release-demo-prod.okd.apps.nodisk.space
     port:
       targetPort: 8080-tcp
     to:
       kind: Service
-      name: acme-app
+      name: acme-app-blue
       weight: 100
     wildcardPolicy: None
   status:
@@ -134,7 +134,7 @@ items:
       - lastTransitionTime: 2019-02-27T17:11:43Z
         status: "True"
         type: Admitted
-      host: acme-app-release-demo.okd.apps.nodisk.space
+      host: acme-app-blue-release-demo-prod.okd.apps.nodisk.space
       routerName: router
       wildcardPolicy: None
 - apiVersion: v1
@@ -144,22 +144,21 @@ items:
       openshift.io/generated-by: OpenShiftNewApp
     creationTimestamp: 2019-02-27T17:11:36Z
     labels:
-      app: acme-app
-    name: acme-app
+      app: acme-app-blue
+    name: acme-app-blue
     namespace: release-demo
     resourceVersion: "676081"
-    selfLink: /api/v1/namespaces/release-demo/services/acme-app
+    selfLink: /api/v1/namespaces/release-demo-prod/services/acme-app-blue
     uid: bd72c906-3ab2-11e9-a1a9-005056a8d7b7
   spec:
-    clusterIP: 172.30.114.41
     ports:
     - name: 8080-tcp
       port: 8080
       protocol: TCP
       targetPort: 8080
     selector:
-      app: acme-app
-      deploymentconfig: acme-app
+      app: acme-app-blue
+      deploymentconfig: acme-app-blue
     sessionAffinity: None
     type: ClusterIP
   status:
