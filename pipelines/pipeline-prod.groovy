@@ -2,6 +2,11 @@ def target_cluster_flags = ""
 def docker_registry = "docker-registry.default.svc"
 def rolloutNewVersion
 def approve_message
+def currentState = 'green'
+def newState = 'blue'
+def pom_file = ''
+def version = ''
+
 //PREREQUISITES
 //oc new-build --strategy docker --binary  --name docker-release
 //oc start-build docker-release --from-dir . --follow
@@ -19,6 +24,17 @@ pipeline {
                     echo "Releasing tag ${BUILD_TAG}"
                     target_cluster_flags = "--server=${OCP_CLUSTER_URL} --insecure-skip-tls-verify"
                     target_cluster_flags = "$target_cluster_flags   --namespace=${OCP_PRJ_BASE_NAMESPACE}-prod"
+
+                    def activeService = {
+                        sh(
+                            script:"oc get route ${OCP_BUILD_NAME} -o jsonpath='{.spec.to.name}'",
+                            returnStatus:true
+                        )
+                    }
+                    if (activeService == "${OCP_BUILD_NAME}-blue") {
+                        newState = 'green'
+                        currentState = 'blue'
+                    }
                 }
             }
         }
@@ -28,13 +44,13 @@ pipeline {
                     withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
                         def checkImageStream =
                             sh(
-                                script:"oc get is ${OCP_BUILD_NAME} -o yaml --ignore-not-found=true --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags|grep ${BUILD_TAG}",
+                                script:"oc get is ${OCP_BUILD_NAME}-${newState} -o yaml --ignore-not-found=true --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags|grep ${BUILD_TAG}",
                                 returnStatus:true
                             )
                         if (checkImageStream >= 1) {
                             def tagImageStrem =
                                 sh(
-                                    script:"oc tag ${OCP_PRJ_BASE_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} ${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}:${BUILD_TAG} $target_cluster_flags --token=${OCP_SERVICE_TOKEN}",
+                                    script:"oc tag ${OCP_PRJ_BASE_NAMESPACE}/${OCP_BUILD_NAME}:${BUILD_TAG} ${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}-${newState}:${BUILD_TAG} $target_cluster_flags --token=${OCP_SERVICE_TOKEN}",
                                     returnStatus:true
                                 )
                         }else{
@@ -63,41 +79,45 @@ pipeline {
             }
             steps {
                 script {
-                    def patchImageStream =
-                        sh(
-                            script: "oc set image dc/${OCP_BUILD_NAME} ${OCP_BUILD_NAME}=$docker_registry:5000/${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}:${BUILD_TAG}  --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
-                            returnStdout: true
-                        )
-                    if (!patchImageStream?.trim()) {
-                        def currentImageStreamVersion =
+                    withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                        def patchImageStream =
                             sh(
-                                script: "oc get dc ${OCP_BUILD_NAME} -o jsonpath='{.spec.template.spec.containers[0].image}' --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
+                                script: "oc set image dc/${OCP_BUILD_NAME}-${newState} ${OCP_BUILD_NAME}-${newState}=$docker_registry:5000/${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}-${newState}:${BUILD_TAG}  --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
                                 returnStdout: true
                             )
-                        if (!currentImageStreamVersion.equalsIgnoreCase("$docker_registry:5000/${OCP_PRJ_BASE_NAMESPACE}-prod/${OCP_BUILD_NAME}:${BUILD_TAG}")) {
-                            echo "DeploymentConfig image tag version is: $currentImageStreamVersion but expected tag is ${BUILD_TAG}"
+                        def rollout =
+                            sh(
+                                script: "oc rollout latest ${OCP_BUILD_NAME}-${newState} --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
+                                returnStdout: true
+                            )
+                        if (!rollout?.trim()) {
                             currentBuild.result = 'ERROR'
-                            error('Rollout finished with errors: DeploymentConfig image tag version is wrong')
+                            error('Rollout finished with errors')
+                        }else{
+                            sh(
+                                script: "oc label dc ${OCP_BUILD_NAME}-${newState} $target_cluster_flags img_version=${BUILD_TAG} --token=${OCP_SERVICE_TOKEN} --overwrite=true",
+                                returnStdout: true
+                            )
                         }
-
+                        echo "Rollout result: $rollout"
                     }
-                    def rollout =
-                        sh(
-                            script: "oc rollout latest ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
-                            returnStdout: true
-                        )
-                    if (!rollout?.trim()) {
-                        currentBuild.result = 'ERROR'
-                        error('Rollout finished with errors')
-                    }else{
-                        sh(
-                            script: "oc label dc ${OCP_BUILD_NAME} $target_cluster_flags img_version=${BUILD_TAG} --token=${OCP_SERVICE_TOKEN} --overwrite=true",
-                            returnStdout: true
-                        )
-                    }
-                    echo "Rollout result: $rollout"
                 }
             }
+        }
+        stage('Patch Route'){
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                        def patchRoute =
+                            sh(
+                                script: "oc patch route/${OCP_BUILD_NAME}  --patch='{"spec":{"to":{"name":"${OCP_BUILD_NAME}-${newState}"}}} --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
+                                returnStdout: true
+                            )
+                        echo "Patched route: $patchRoute"
+                    }
+                }
+            }
+
         }
     }
 }

@@ -1,0 +1,176 @@
+apiVersion: v1
+items:
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: 2019-02-27T17:11:36Z
+    generation: 17
+    labels:
+      app: acme-app
+    name: acme-app
+    namespace: release-demo
+    resourceVersion: "810330"
+    selfLink: /apis/apps.openshift.io/v1/namespaces/release-demo/deploymentconfigs/acme-app
+    uid: bd6bfb64-3ab2-11e9-a1a9-005056a8d7b7
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: acme-app
+      deploymentconfig: acme-app
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          app: acme-app
+          deploymentconfig: acme-app
+      spec:
+        containers:
+        - image: docker-registry.default.svc:5000/release-demo/acme-app:1.0_GA
+          imagePullPolicy: Always
+          name: acme-app
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /opt/webserver/configuration/
+            name: volume-bphbu
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: cool-app-config
+          name: volume-bphbu
+    test: false
+    triggers: []
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: 2019-02-27T17:11:41Z
+      lastUpdateTime: 2019-02-27T17:11:41Z
+      message: Deployment config has minimum availability.
+      status: "True"
+      type: Available
+    - lastTransitionTime: 2019-02-28T15:26:53Z
+      lastUpdateTime: 2019-02-28T15:26:55Z
+      message: replication controller "acme-app-9" successfully rolled out
+      reason: NewReplicationControllerAvailable
+      status: "True"
+      type: Progressing
+    details:
+      causes:
+      - type: Manual
+      message: manual change
+    latestVersion: 9
+    observedGeneration: 17
+    readyReplicas: 1
+    replicas: 1
+    unavailableReplicas: 0
+    updatedReplicas: 1
+- apiVersion: v1
+  data:
+    description.properties: 'description=This is a sample java based web application
+      used to show how to build and deploy on OpenShift container platform. To learn
+      more please visit: <a href="https://www.openshift.com/"> OpenShift Container
+      Platform website</a>'
+    headers.properties: |-
+      header-one=OpenShift includes Kubernetes for container orchestration and management. OpenShift adds developer and operations-centric tools that enable:<ul><li>Rapid application development</li><li>Easy deployment and scaling</li><li>Long-term life-cycle maintenance for teams and applications</li></ul>
+      header-two=OpenShift leverages integrated components from Kubernetes to automate:<ul><li>Application builds</li><li>Deployments</li><li>Scaling</li><li>Health management</li><li>And more!</li></ul>
+      header-three=Developers can rapidly create applications on-demand with the tools they use most. Administrators can leverage placement and policy to best orchestrate their environments.
+  kind: ConfigMap
+  metadata:
+    creationTimestamp: 2019-02-27T17:34:22Z
+    name: cool-app-config
+    namespace: release-demo
+    resourceVersion: "678494"
+    selfLink: /api/v1/namespaces/release-demo/configmaps/cool-app-config
+    uid: eb9f655e-3ab5-11e9-a1a9-005056a8d7b7
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/host.generated: "true"
+    creationTimestamp: 2019-02-27T17:11:43Z
+    labels:
+      app: acme-app
+    name: acme-app
+    namespace: release-demo
+    resourceVersion: "676130"
+    selfLink: /apis/route.openshift.io/v1/namespaces/release-demo/routes/acme-app
+    uid: c16638cc-3ab2-11e9-a1a9-005056a8d7b7
+  spec:
+    host: acme-app-release-demo.okd.apps.nodisk.space
+    port:
+      targetPort: 8080-tcp
+    to:
+      kind: Service
+      name: acme-app
+      weight: 100
+    wildcardPolicy: None
+  status:
+    ingress:
+    - conditions:
+      - lastTransitionTime: 2019-02-27T17:11:43Z
+        status: "True"
+        type: Admitted
+      host: acme-app-release-demo.okd.apps.nodisk.space
+      routerName: router
+      wildcardPolicy: None
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: 2019-02-27T17:11:36Z
+    labels:
+      app: acme-app
+    name: acme-app
+    namespace: release-demo
+    resourceVersion: "676081"
+    selfLink: /api/v1/namespaces/release-demo/services/acme-app
+    uid: bd72c906-3ab2-11e9-a1a9-005056a8d7b7
+  spec:
+    clusterIP: 172.30.114.41
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: acme-app
+      deploymentconfig: acme-app
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""

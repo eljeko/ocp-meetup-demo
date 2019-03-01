@@ -61,12 +61,24 @@ The service account will need to have project level access to each of the projec
 
 ## Configure Jenkins
 
-oc policy add-role-to-user edit system:serviceaccount:release-demo-prod:jenkins -n release-demo-prod
+Add permission in order to be able to manage project from Jenkins
+```oc policy add-role-to-user edit system:serviceaccount:release-demo-prod:jenkins -n release-demo-prod```
 
-### Necessario per permettere il tag delle immagini tra due namespace
-oc policy add-role-to-user edit system:serviceaccount:release-demo-prod:jenkins -n release-demo
-oc policy add-role-to-user system:image-puller system:serviceaccount:release-demo-prod:jenkins -n release-demo
-oc policy add-role-to-user edit system:serviceaccount:stage:default -n prod
+Add permission in order to push image across projects
+```oc policy add-role-to-user edit system:serviceaccount:release-demo-prod:jenkins -n release-demo```
 
+Excrat token used from Jenkins
+```
 oc serviceaccounts get-token jenkins -n release-demo-prod
 oc serviceaccounts get-token jenkins -n release-demo
+```
+
+## Blue/Green Deployment
+```
+oc new-app --name='acme-app-blue' -l name='acme-app' -i acme-app:1.0_GA
+oc expose service acme-app-blue
+oc new-app --name='acme-app-green' -l name='acme-app' -i acme-app:1.0_GA
+oc expose service acme-app-green
+oc expose service acme-app-blue --name='bg' -l name='acme-app'
+oc patch route/bg  --patch='{"spec":{"to":{"name":"acme-app-green"}}}'
+```
