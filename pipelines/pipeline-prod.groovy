@@ -24,16 +24,18 @@ pipeline {
                     echo "Releasing tag ${BUILD_TAG}"
                     target_cluster_flags = "--server=${OCP_CLUSTER_URL} --insecure-skip-tls-verify"
                     target_cluster_flags = "$target_cluster_flags   --namespace=${OCP_PRJ_BASE_NAMESPACE}-prod"
-
-                    def activeService = {
-                        sh(
-                            script:"oc get route ${OCP_BUILD_NAME} -o jsonpath='{.spec.to.name}'",
-                            returnStatus:true
-                        )
-                    }
-                    if (activeService == "${OCP_BUILD_NAME}-blue") {
-                        newState = 'green'
-                        currentState = 'blue'
+                    withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
+                        def activeService = {
+                            sh(
+                                script:"oc get route ${OCP_BUILD_NAME} -o jsonpath='{.spec.to.name}'  --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
+                                returnStatus:true
+                            )
+                        }
+                        echo activeService
+                        if (activeService == "${OCP_BUILD_NAME}-blue") {
+                            newState = 'green'
+                            currentState = 'blue'
+                        }
                     }
                 }
             }
@@ -110,7 +112,7 @@ pipeline {
                     withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
                         def patchRoute =
                             sh(
-                                script: "oc patch route/${OCP_BUILD_NAME}  --patch='{\"spec\":{\"to\":{\"name\":\"${OCP_BUILD_NAME}-${newState}\"}}}' --token=${OCP_SERVICE_TOKEN} -o json $target_cluster_flags \
+                                script: "oc patch route/${OCP_BUILD_NAME}  --patch='{\"spec\":{\"to\":{\"name\":\"${OCP_BUILD_NAME}-${newState}\"}}}' --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags \
                                         |oc replace ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags -f -",
                                 returnStdout: true
                             )
