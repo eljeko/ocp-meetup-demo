@@ -110,9 +110,11 @@ pipeline {
                     withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
                         def patchRoute =
                             sh(
-                                script: "oc patch route/${OCP_BUILD_NAME}  --patch='{\"spec\":{\"to\":{\"name\":\"${OCP_BUILD_NAME}-${newState}\"}}}' --token=${OCP_SERVICE_TOKEN}  $target_cluster_flags",
+                                script: "oc patch route/${OCP_BUILD_NAME}  --patch='{\"spec\":{\"to\":{\"name\":\"${OCP_BUILD_NAME}-${newState}\"}}}' --token=${OCP_SERVICE_TOKEN} -o json $target_cluster_flags \
+                                        |oc replace ${OCP_BUILD_NAME} --token=${OCP_SERVICE_TOKEN} $target_cluster_flags -f -",
                                 returnStdout: true
                             )
+                        echo "Patched route: $patchRoute"
                     }
                 }
             }
