@@ -24,6 +24,12 @@ pipeline {
                     echo "Releasing tag ${BUILD_TAG}"
                     target_cluster_flags = "--server=${OCP_CLUSTER_URL} --insecure-skip-tls-verify"
                     target_cluster_flags = "$target_cluster_flags   --namespace=${OCP_PRJ_BASE_NAMESPACE}-prod"
+                }
+            }
+        }
+        stage('Verify Active Service'){
+            steps{
+                script{
                     withCredentials([string(credentialsId: "${OCP_SERVICE_TOKEN}", variable: 'OCP_SERVICE_TOKEN')]) {
                         def activeService = {
                             sh(
@@ -36,6 +42,7 @@ pipeline {
                             newState = 'green'
                             currentState = 'blue'
                         }
+                        echo "Curret Service ${OCP_BUILD_NAME}-${currentState} will be replaced with ${OCP_BUILD_NAME}-${newState}"
                     }
                 }
             }
