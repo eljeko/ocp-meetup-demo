@@ -68,7 +68,7 @@ pipeline {
             steps {
                 script {
                     rolloutNewVersion =
-                        input(  message: "Si desidere effettuare il rollout?",
+                        input(  message: "Si desidera effettuare il rollout?",
                                 ok: 'Procedi',
                                     parameters: [booleanParam(defaultValue: true,
                                             description: '',
